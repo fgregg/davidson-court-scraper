@@ -164,19 +164,19 @@ def change_points(year):
 
     end = 1
     for grouping in ("A", "B", "C", "D"):
-        key = functools.partial(_change_key, year, grouping)
+        key = functools.partial(_case_exists, year, grouping)
 
         start = end
         end = _bisect(start, 9999, key)
 
         ranges[grouping] = (start, end)
 
-    ranges["I"] = (1, _bisect(1, 9999, functools.partial(_change_key, year, "I")))
+    ranges["I"] = (1, _bisect(1, 9999, functools.partial(_case_exists, year, "I")))
 
     return ranges
 
 
-def _change_key(year, grouping, serial):
+def _case_exists(year, grouping, serial):
     case_number = f"{year}-{grouping}-{serial}"
 
     response = requests.post(
