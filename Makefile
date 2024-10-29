@@ -1,4 +1,6 @@
 
+felony_convictions.csv : all.jl
+	cat $< | python scripts/felony_convictions.py > $@
 
 all.jl : 2000_year.jl 2001_year.jl 2002_year.jl 2003_year.jl 2004_year.jl \
          2005_year.jl 2006_year.jl 2007_year.jl 2008_year.jl 2009_year.jl \
