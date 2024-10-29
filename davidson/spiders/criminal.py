@@ -141,10 +141,12 @@ def change_points(year):
     pattern.
 
     The case numbers have a {year}-{grouping}-{serial} pattern, where
-    grouping is 'A', 'B', 'C', 'D', or 'I'. The serial number starts
-    with 1 and increases sequentially across all the criminal cases in
-    a year. However, when the grouping switches from 'A' to 'B', 'B'
-    to 'C', etc is not predictable.
+    grouping is 'A', 'B', 'C', 'D', or 'I'.
+
+    For, 'A', 'B', 'C', and 'D', the serial number starts with 1 and
+    increases sequentially across all the groupings in a
+    year. However, when the grouping switches from 'A' to 'B', 'B' to
+    'C', etc is not predictable.
 
     We know that {year}-A-1 is always a valid case number and we know
     that the maximum case number is less than 9999, so we use a
