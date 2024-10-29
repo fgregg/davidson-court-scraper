@@ -136,6 +136,26 @@ def _charges(response):
 
 
 def change_points(year):
+    """
+    The criminal case numbers in Davidson County have a suprising pattern.
+
+    The case numbers have a {year}-{grouping}-{serial} pattern, where
+    grouping is 'A', 'B', 'C', 'D', or 'I'. The serial number starts
+    with 1 and increases sequentially across all the criminal cases in
+    a year. However, when the grouping switches from 'A' to 'B', 'B'
+    to 'C', etc is not predictable.
+
+    We know that {year}-A-1 is always a valid case number and we know
+    that the maximum case number is less than 9999, so we use a
+    bisection algorithm to find the largest serial for the 'A'
+    grouping. That also lets us know the smallest serial for the 'B'
+    grouping, and if we know the smallest valid serial for the 'B'
+    grouping, we can use a bisection algorithm the largest serial for
+    that grouping, and so on.
+
+    The 'I' grouping is different, in that its serial is not tied to
+    the other groupings and, like 'A' starts with 1.
+    """
 
     ranges = {}
 
