@@ -137,7 +137,8 @@ def _charges(response):
 
 def change_points(year):
     """
-    The criminal case numbers in Davidson County have a suprising pattern.
+    The criminal case numbers in Davidson County have a suprising
+    pattern.
 
     The case numbers have a {year}-{grouping}-{serial} pattern, where
     grouping is 'A', 'B', 'C', 'D', or 'I'. The serial number starts
@@ -155,6 +156,7 @@ def change_points(year):
 
     The 'I' grouping is different, in that its serial is not tied to
     the other groupings and, like 'A' starts with 1.
+
     """
 
     ranges = {}
