@@ -11,19 +11,23 @@ class CriminalSpider(scrapy.Spider):
     name = "criminal"
     allowed_domains = ["sci.ccc.nashville.gov"]
 
+    def __init__(self, year=2024, **kwargs):
+
+        super().__init__(**kwargs)
+        self.year = year
+
     def start_requests(self):
 
-        for year in range(2000, 2025):
-            ranges = change_points(year)
+        ranges = change_points(self.year)
 
-            for grouping, (start, end) in ranges.items():
-                for serial in range(start, end):
-                    case_number = f"{year}-{grouping}-{serial}"
-                    yield scrapy.FormRequest(
-                        "https://sci.ccc.nashville.gov/Search/SearchWarrant",
-                        formdata={"warrantNumber": case_number},
-                        callback=self.parse_search_results,
-                    )
+        for grouping, (start, end) in ranges.items():
+            for serial in range(start, end):
+                case_number = f"{self.year}-{grouping}-{serial}"
+                yield scrapy.FormRequest(
+                    "https://sci.ccc.nashville.gov/Search/SearchWarrant",
+                    formdata={"warrantNumber": case_number},
+                    callback=self.parse_search_results,
+                )
 
     def parse_search_results(self, response):
         result_table = response.xpath('//table[@class="warrant-number-results"]')
@@ -39,7 +43,7 @@ class CriminalSpider(scrapy.Spider):
             )
 
     def parse_case_page(self, response, case_number):
-        case_details = {"case_number": case_number}
+        case_details = {"case_number": case_number, "case_url": response.url}
 
         name_link = response.xpath('..//a[@class="defendant-name-link"]')
 
@@ -48,10 +52,10 @@ class CriminalSpider(scrapy.Spider):
             name_link.attrib["href"]
         )
 
-        case_status, defendant_status, *_ = [
+        case_status, defendant_status, *_ = (
             each.strip()
             for each in response.xpath('.//span[@class="case-status"]/text()').getall()
-        ]
+        )
         case_details["case_status"] = case_status.removeprefix("Case Status: ")
         case_details["defendant_status"] = case_status.removeprefix(
             "Defendant Status: "
@@ -85,19 +89,14 @@ def _charges(response):
     charges = []
 
     if len(charges_elements) % 12 != 0:
-        if charges_elements[2] == "" or "HEARING" in charges_elements[2]:
-            return charges
-        else:
-            breakpoint()
+        return charges
 
     for charge_elements in batched(charges_elements, 12):
         charge_details = {}
 
-        _, a, charge, b, count, c, d, amended, e, convicted, f, disposition = (
+        _, _, charge, _, count, _, _, amended, _, convicted, _, disposition = (
             charge_elements
         )
-        if not a == b == c == d == e == f == "":
-            breakpoint()
 
         charge_details["charge"] = charge
         count = re.search(r"Count (?P<count>\d*)", count)["count"]
