@@ -163,14 +163,15 @@ def change_points(year):
 
     ranges = {}
 
-    end = 1
+    start = 1
     for grouping in ("A", "B", "C", "D"):
         key = functools.partial(_case_exists, year, grouping)
 
-        start = end
         end = _bisect(start, 9999, key)
 
         ranges[grouping] = (start, end)
+
+        start = end
 
     ranges["I"] = (1, _bisect(1, 9999, functools.partial(_case_exists, year, "I")))
 
