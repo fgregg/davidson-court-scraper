@@ -1,19 +1,10 @@
+import functools
 import itertools
 import re
 
 import requests
 import scrapy
 from scrapy.utils.response import open_in_browser
-
-
-def batched(iterable, n):
-    "Batch data into tuples of length n. The last batch may be shorter."
-    # batched('ABCDEFG', 3) --> ABC DEF G
-    if n < 1:
-        raise ValueError("n must be at least one")
-    it = iter(iterable)
-    while batch := tuple(itertools.islice(it, n)):
-        yield batch
 
 
 class CriminalSpider(scrapy.Spider):
@@ -25,8 +16,8 @@ class CriminalSpider(scrapy.Spider):
         for year in range(2000, 2025):
             ranges = change_points(year)
 
-            for grouping, serial_range in ranges.items():
-                for serial in range(serial_range["start"], serial_range["end"]):
+            for grouping, (start, end) in ranges.items():
+                for serial in range(start, end):
                     case_number = f"{year}-{grouping}-{serial}"
                     yield scrapy.FormRequest(
                         "https://sci.ccc.nashville.gov/Search/SearchWarrant",
@@ -135,6 +126,16 @@ def _charges(response):
     return charges
 
 
+def batched(iterable, n):
+    "Batch data into tuples of length n. The last batch may be shorter."
+    # batched('ABCDEFG', 3) --> ABC DEF G
+    if n < 1:
+        raise ValueError("n must be at least one")
+    it = iter(iterable)
+    while batch := tuple(itertools.islice(it, n)):
+        yield batch
+
+
 def change_points(year):
     """
     The criminal case numbers in Davidson County have a suprising
@@ -155,40 +156,45 @@ def change_points(year):
     that grouping, and so on.
 
     The 'I' grouping is different, in that its serial is not tied to
-    the other groupings and, like 'A' starts with 1.
+    the other groupings.
 
     """
 
     ranges = {}
 
-    mid = 1
+    end = 1
+    for grouping in ("A", "B", "C", "D"):
+        key = functools.partial(_change_key, year, grouping)
 
-    for grouping in "ABCDI":
+        start = end
+        end = _bisect(start, 9999, key)
 
-        if grouping == "I":
-            low = 1
-        else:
-            low = mid
+        ranges[grouping] = (start, end)
 
-        high = 9999
-
-        ranges[grouping] = {"start": low}
-
-        while low < high:
-            mid = (low + high) // 2
-            case_number = f"{year}-{grouping}-{mid}"
-
-            response = requests.post(
-                "https://sci.ccc.nashville.gov/Search/SearchWarrant",
-                data={"warrantNumber": case_number},
-            )
-            case_found = "/Search/CaseSearchDetails" in response.text
-
-            if case_found:
-                low = mid + 1
-            else:
-                high = mid
-
-        ranges[grouping]["end"] = mid
+    ranges["I"] = (1, _bisect(1, 9999, functools.partial(_change_key, year, "I")))
 
     return ranges
+
+
+def _change_key(year, grouping, serial):
+    case_number = f"{year}-{grouping}-{serial}"
+
+    response = requests.post(
+        "https://sci.ccc.nashville.gov/Search/SearchWarrant",
+        data={"warrantNumber": case_number},
+    )
+
+    return "/Search/CaseSearchDetails" in response.text
+
+
+def _bisect(low, high, key):
+
+    while low < high:
+        mid = (low + high) // 2
+
+        if key(mid):
+            low = mid + 1
+        else:
+            high = mid
+
+    return mid
