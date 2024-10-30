@@ -58,7 +58,7 @@ class CriminalSpider(scrapy.Spider):
             name_link.attrib["href"]
         )
 
-        case_status, defendant_status, fees_owed, amount, *rest = (
+        case_status, defendant_status, fees_owed, amount, *_ = (
             each.strip()
             for each in response.xpath('.//span[@class="case-status"]//text()').getall()
         )
