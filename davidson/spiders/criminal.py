@@ -34,32 +34,42 @@ class CriminalSpider(scrapy.Spider):
         for row in result_table.xpath(".//tbody/tr"):
             link = row.xpath("./td[1]/a")
             href = link.attrib["href"]
-            case_number = link.xpath("./text()").get().strip()
+
+            case_details = {
+                "case_number": link.xpath("./text()").get().strip(),
+                "first_name": row.xpath("./td[2]/a/text()").get().strip(),
+                "last_name": row.xpath("./td[3]/a/text()").get().strip(),
+            }
 
             yield response.follow(
                 href,
                 callback=self.parse_case_page,
-                cb_kwargs={"case_number": case_number},
+                cb_kwargs={"case_details": case_details},
             )
 
-    def parse_case_page(self, response, case_number):
-        case_details = {"case_number": case_number, "case_url": response.url}
+    def parse_case_page(self, response, case_details):
+
+        case_details["case_url"] = response.url
 
         name_link = response.xpath('..//a[@class="defendant-name-link"]')
 
-        case_details["name"] = name_link.xpath(".//text()").get().strip()
+        case_details["full_name"] = name_link.xpath(".//text()").get().strip()
         case_details["criminal_history_url"] = response.urljoin(
             name_link.attrib["href"]
         )
 
-        case_status, defendant_status, *_ = (
+        case_status, defendant_status, fees_owed, amount, *rest = (
             each.strip()
-            for each in response.xpath('.//span[@class="case-status"]/text()').getall()
+            for each in response.xpath('.//span[@class="case-status"]//text()').getall()
         )
         case_details["case_status"] = case_status.removeprefix("Case Status: ")
-        case_details["defendant_status"] = case_status.removeprefix(
+        case_details["defendant_status"] = defendant_status.removeprefix(
             "Defendant Status: "
         )
+        if fees_owed:
+            case_details["fees_owed"] = amount
+        else:
+            case_details["fees_owed"] = None
 
         result_section = response.xpath('..//div[@class="results-title"]').get()
         case_details["date_of_birth"] = re.search(
